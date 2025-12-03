@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CareerGraph - AI-Powered Career Roadmap Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="https://unpkg.com/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
+</head>
+<body>
+    <!-- Hero Section -->
+    <div class="hero">
+        <div class="stars"></div>
+        <div class="hero-content">
+            <h1 class="hero-title">
+                <span class="gradient-text">CareerGraph</span>
+            </h1>
+            <p class="hero-subtitle">AI-Powered Career Roadmap Generator</p>
+            <p class="hero-description">
+                Discover your personalized learning path with our multi-agent AI system.
+                Generate interactive roadmaps with curated resources for any career goal.
+            </p>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Query Input Section -->
+        <div class="input-section" id="inputSection">
+            <div class="input-card">
+                <h2 class="input-title">What do you want to learn?</h2>
+                <p class="input-subtitle">Enter your career goal or learning objective</p>
+                
+                <form id="queryForm" class="query-form">
+                    <div class="input-group">
+                        <input 
+                            type="text" 
+                            id="queryInput" 
+                            class="query-input"
+                            placeholder="e.g., How to become a CA in India, Roadmap for AI Engineer..."
+                            required
+                            minlength="5"
+                        >
+                        <button type="submit" class="submit-btn" id="submitBtn">
+                            <span class="btn-text">Generate Roadmap</span>
+                            <span class="btn-icon">→</span>
+                        </button>
+                    </div>
+                </form>
+
+                <div class="examples">
+                    <p class="examples-title">Try these examples:</p>
+                    <div class="example-tags">
+                        <button class="example-tag" onclick="fillExample('How to become a CA in India')">
+                            CA Career Path
+                        </button>
+                        <button class="example-tag" onclick="fillExample('Roadmap for AI Engineer')">
+                            AI Engineering
+                        </button>
+                        <button class="example-tag" onclick="fillExample('How to learn thermodynamics in physics')">
+                            Thermodynamics
+                        </button>
+                        <button class="example-tag" onclick="fillExample('Become a Full Stack Developer')">
+                            Full Stack Dev
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Section -->
+        <div class="loading-section" id="loadingSection" style="display: none;">
+            <div class="loading-card">
+                <div class="loading-spinner"></div>
+                <h3 class="loading-title">Generating Your Roadmap</h3>
+                <p class="loading-subtitle">Our AI agents are working together...</p>
+                
+                <div class="agent-progress">
+                    <div class="agent-step" id="step1">
+                        <div class="step-icon">🔍</div>
+                        <div class="step-content">
+                            <div class="step-title">Validation Agent</div>
+                            <div class="step-desc">Analyzing your query...</div>
+                        </div>
+                        <div class="step-status pending">⏳</div>
+                    </div>
+                    
+                    <div class="agent-step" id="step2">
+                        <div class="step-icon">📚</div>
+                        <div class="step-content">
+                            <div class="step-title">Research Agent</div>
+                            <div class="step-desc">Gathering learning resources...</div>
+                        </div>
+                        <div class="step-status pending">⏳</div>
+                    </div>
+                    
+                    <div class="agent-step" id="step3">
+                        <div class="step-icon">🗺️</div>
+                        <div class="step-content">
+                            <div class="step-title">Structure Agent</div>
+                            <div class="step-desc">Building your roadmap...</div>
+                        </div>
+                        <div class="step-status pending">⏳</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Roadmap Display Section -->
+        <div class="roadmap-section" id="roadmapSection" style="display: none;">
+            <div class="roadmap-header">
+                <div class="header-content">
+                    <h2 class="roadmap-title" id="roadmapTitle">Your Career Roadmap</h2>
+                    <p class="roadmap-description" id="roadmapDescription"></p>
+                </div>
+                <div class="header-actions">
+                    <button class="action-btn" onclick="exportRoadmap()">
+                        <span>💾</span> Export HTML
+                    </button>
+                    <button class="action-btn secondary" onclick="resetApp()">
+                        <span>🔄</span> New Roadmap
+                    </button>
+                </div>
+            </div>
+
+            <div class="roadmap-stats" id="roadmapStats"></div>
+
+            <div class="legend-card">
+                <h3 class="legend-title">Node Levels</h3>
+                <div class="legend-items">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #ec4899;"></div>
+                        <span>Root Goal</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #8b5cf6;"></div>
+                        <span>Main Topics</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #3b82f6;"></div>
+                        <span>Subtopics</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #10b981;"></div>
+                        <span>Learning Units</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls-card">
+                <button class="control-btn" onclick="resetZoom()">
+                    <span>🔍</span> Reset View
+                </button>
+                <button class="control-btn" onclick="fitGraph()">
+                    <span>📐</span> Fit to Screen
+                </button>
+                <button class="control-btn" onclick="centerGraph()">
+                    <span>🎯</span> Center
+                </button>
+            </div>
+
+            <div class="graph-container">
+                <div id="cy"></div>
+            </div>
+
+            <div class="node-details" id="nodeDetails" style="display: none;"></div>
+        </div>
+
+        <!-- Error Section -->
+        <div class="error-section" id="errorSection" style="display: none;">
+            <div class="error-card">
+                <div class="error-icon">⚠️</div>
+                <h3 class="error-title">Something went wrong</h3>
+                <p class="error-message" id="errorMessage"></p>
+                <button class="error-btn" onclick="resetApp()">Try Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/graph.js"></script>
+</body>
+</html>
