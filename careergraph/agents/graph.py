@@ -96,58 +96,103 @@ Reject queries about:
 
 
 def research_agent(state: AgentState) -> AgentState:
-    """Research and gather learning resources for the query."""
+    """Research and gather learning resources for the query using web search."""
     llm = create_llm()
+    search_enabled = os.getenv("SEARCH_ENABLED", "true").lower() == "true"
     
-    prompt = f"""You are a research agent specializing in finding educational resources.
-    
+    # Step 1: Use LLM to identify topics and structure
+    structure_prompt = f"""You are a research agent. Identify the main topics and subtopics needed to achieve this goal.
+
 Query: {state['query']}
 
-Your task is to identify the main topics and subtopics that someone would need to learn to achieve this goal.
-For each topic, suggest 3-5 high-quality learning resources.
-
-Respond with a JSON object containing an array of topics:
+Respond with a JSON object containing topics to research:
 {{
     "topics": [
         {{
             "title": "Topic Name",
             "description": "Brief description",
+            "search_keywords": ["keyword1", "keyword2"],
             "subtopics": [
                 {{
                     "title": "Subtopic Name",
                     "description": "Brief description",
-                    "resources": [
-                        {{
-                            "title": "Resource Title",
-                            "url": "https://example.com",
-                            "type": "video|documentation|course|book|paper",
-                            "description": "What this resource covers",
-                            "duration": "estimated time"
-                        }}
-                    ]
+                    "search_keywords": ["keyword1", "keyword2"]
                 }}
             ]
         }}
     ]
 }}
 
-Focus on:
-- YouTube educational channels and tutorials
-- Official documentation and guides
-- Online courses (Coursera, edX, Udemy)
-- Highly-rated books
-- Research papers (if applicable)
+Focus on current, practical topics. Include trending technologies for 2025."""
 
-Be specific and provide realistic, high-quality resources."""
-
-    response = llm.invoke([HumanMessage(content=prompt)])
+    response = llm.invoke([HumanMessage(content=structure_prompt)])
     
     try:
         json_text = extract_json(response.content)
-        result = json.loads(json_text)
-        state["research_data"] = [result]
+        topics_structure = json.loads(json_text)
+        
+        # Step 2: If search enabled, find real resources
+        if search_enabled:
+            print(f"🔍 Web search ENABLED - Using Serper API")
+            from careergraph.utils.search import SerperSearchTool
+            search_tool = SerperSearchTool()
+            
+            # Enhance each topic with real web search results
+            for topic in topics_structure.get("topics", []):
+                topic_resources = []
+                
+                print(f"  📚 Searching for: {topic['title']}")
+                
+                # Search for videos
+                videos = search_tool.search_youtube(topic["title"], max_results=2)
+                print(f"    ✓ Found {len(videos)} YouTube videos")
+                topic_resources.extend(videos)
+                
+                # Search for courses
+                courses = search_tool.search_courses(topic["title"], max_results=2)
+                print(f"    ✓ Found {len(courses)} courses")
+                topic_resources.extend(courses)
+                
+                # Search for documentation
+                docs = search_tool.search_documentation(topic["title"], max_results=1)
+                print(f"    ✓ Found {len(docs)} documentation")
+                topic_resources.extend(docs)
+                
+                # Add resources to subtopics
+                for subtopic in topic.get("subtopics", []):
+                    subtopic_query = f"{topic['title']} {subtopic['title']}"
+                    
+                    # Fewer resources for subtopics
+                    sub_videos = search_tool.search_youtube(subtopic_query, max_results=1)
+                    sub_courses = search_tool.search_courses(subtopic_query, max_results=1)
+                    
+                    subtopic["resources"] = sub_videos + sub_courses
+                    print(f"      - {subtopic['title']}: {len(subtopic['resources'])} resources")
+                
+                # Attach main topic resources
+                topic["resources"] = topic_resources
+                print(f"  Total resources for '{topic['title']}': {len(topic_resources)}")
+        else:
+            print(f"⚠️  Web search DISABLED - Using LLM fallback")
+            # Fallback: Use LLM to suggest resources (old behavior)
+            for topic in topics_structure.get("topics", []):
+                for subtopic in topic.get("subtopics", []):
+                    # Add placeholder resources
+                    subtopic["resources"] = [
+                        {
+                            "title": f"Learn {subtopic['title']}",
+                            "url": "https://example.com",
+                            "type": "course",
+                            "description": f"Comprehensive guide to {subtopic['title']}",
+                            "source": "LLM Suggestion"
+                        }
+                    ]
+        
+        print(f"✅ Research complete. Total topics: {len(topics_structure.get('topics', []))}")
+        state["research_data"] = [topics_structure]
         state["current_agent"] = "research"
     except (json.JSONDecodeError, Exception) as e:
+        print(f"❌ Research error: {str(e)}")
         state["research_data"] = []
         state["error"] = f"Research parsing error: {str(e)}"
     
@@ -166,10 +211,12 @@ Query: {state['query']}
 Research Data:
 {research_summary}
 
+IMPORTANT: The research data contains real resources (YouTube videos, courses, documentation) that you MUST include in the roadmap nodes.
+
 Create a complete roadmap with nodes at different levels:
 - Level 0: Root node (the overall goal)
 - Level 1: Main topics/phases
-- Level 2: Subtopics within each main topic
+- Level 2: Subtopics within each main topic  
 - Level 3: Individual learning units
 
 Respond with a JSON object:
@@ -184,19 +231,32 @@ Respond with a JSON object:
             "description": "Node description",
             "level": 0,
             "parent_id": null,
-            "resources": [],
+            "resources": [
+                {{
+                    "title": "Resource Title",
+                    "url": "https://actual-url.com",
+                    "type": "video|documentation|course",
+                    "description": "Brief description",
+                    "source": "YouTube|Coursera|Official Docs",
+                    "duration": "time if known"
+                }}
+            ],
             "prerequisites": [],
             "estimated_time": "time estimate"
         }}
     ]
 }}
 
-Ensure:
+CRITICAL INSTRUCTIONS:
 1. Create a clear hierarchy with proper parent_id relationships
-2. Assign appropriate resources to each node from the research data
-3. Define prerequisites where applicable
-4. Provide realistic time estimates
-5. Make IDs descriptive (e.g., "fundamentals-python", "advanced-ml")"""
+2. **COPY ALL RESOURCES from the research data topics/subtopics to the corresponding roadmap nodes**
+3. Match topics from research data to roadmap nodes and include their resources
+4. Do NOT leave resources arrays empty if research data has resources for that topic
+5. Define prerequisites where applicable
+6. Provide realistic time estimates
+7. Make IDs descriptive (e.g., "fundamentals-python", "advanced-ml")
+
+Example: If research data has a topic "HTML Basics" with 5 resources, the roadmap node for "HTML Basics" should include all 5 resources."""
 
     response = llm.invoke([HumanMessage(content=prompt)])
     

@@ -4,9 +4,16 @@ CareerGraph is a sophisticated multi-agent AI application that generates interac
 
 ## ✨ Features
 
+- **Real-Time Web Search** (NEW! 🔥):
+  - Live search for current YouTube tutorials (2025)
+  - Active online courses from Coursera, Udemy, edX
+  - Up-to-date official documentation
+  - Validated, accessible URLs
+  - No hallucinated or outdated resources
+
 - **Multi-Agent AI System**: Three specialized agents work together:
   - **Validation Agent**: Ensures queries are career/education-related
-  - **Research Agent**: Gathers high-quality learning resources
+  - **Research Agent**: Uses web search to find real resources
   - **Structure Agent**: Creates hierarchical roadmap structure
 
 - **Interactive Visualization**: 
@@ -19,8 +26,8 @@ CareerGraph is a sophisticated multi-agent AI application that generates interac
   - YouTube tutorials and courses
   - Documentation and guides
   - Online courses (Coursera, edX, Udemy)
-  - Books and research papers
-  - 2-5 resources per topic
+  - Source attribution (YouTube, Official Docs, etc.)
+  - 5-7 verified resources per topic
 
 - **Export Functionality**:
   - Download as standalone HTML file
@@ -38,7 +45,8 @@ CareerGraph is a sophisticated multi-agent AI application that generates interac
 ### Prerequisites
 
 - Python 3.10 or higher
-- OpenAI API key
+- OpenAI API key (required)
+- Serper API key (optional, for web search - see [SERPER_SETUP.md](file:///home/vedant/Desktop/testing_gravity/SERPER_SETUP.md))
 
 ### Installation
 
@@ -63,11 +71,17 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Edit `.env` and add your OpenAI API key:
+Edit `.env` and add your API keys:
 ```
 OPENAI_API_KEY=your_actual_api_key_here
-OPENAI_MODEL=gpt-4-turbo-preview
+OPENAI_MODEL=gpt-4o-mini
+
+# Optional: Enable web search for current resources
+SERPER_API_KEY=your_serper_api_key_here
+SEARCH_ENABLED=true
 ```
+
+See [SERPER_SETUP.md](file:///home/vedant/Desktop/testing_gravity/SERPER_SETUP.md) for web search setup.
 
 ### Running the Application
 

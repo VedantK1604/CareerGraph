@@ -7,9 +7,11 @@ class Resource(BaseModel):
     """A learning resource with metadata."""
     title: str = Field(..., description="Resource title")
     url: str = Field(..., description="Resource URL")
-    type: str = Field(..., description="Resource type: video, documentation, course, book, paper")
+    type: str = Field(..., description="Resource type: video, documentation, course, book, paper, article")
     description: str = Field(..., description="Brief description of the resource")
     duration: Optional[str] = Field(None, description="Estimated time to complete")
+    source: Optional[str] = Field(None, description="Source platform (e.g., YouTube, Coursera, Official Docs)")
+    published_date: Optional[str] = Field(None, description="Publication or last updated date")
 
 
 class RoadmapNode(BaseModel):
