@@ -28,8 +28,66 @@
 
     <!-- Main Container -->
     <div class="container">
+        <!-- API Configuration Section -->
+        <div class="input-section" id="apiConfigSection">
+            <div class="input-card">
+                <h2 class="input-title">🔑 API Configuration</h2>
+                <p class="input-subtitle">Enter your API keys to use the service (stored in session only)</p>
+                
+                <div class="api-keys-form">
+                    <div class="api-key-group">
+                        <label for="openaiKey" class="api-label">
+                            <span>OpenAI API Key</span>
+                            <span class="required">*</span>
+                            <span class="key-status" id="openaiStatus"></span>
+                        </label>
+                        <div class="key-input-wrapper">
+                            <input 
+                                type="password" 
+                                id="openaiKey" 
+                                class="api-input"
+                                placeholder="sk-..."
+                            >
+                            <button type="button" class="toggle-visibility" onclick="toggleKeyVisibility('openaiKey')">
+                                👁️
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="api-key-group">
+                        <label for="serperKey" class="api-label">
+                            <span>Serper API Key</span>
+                            <span class="optional">(Optional - for web search)</span>
+                            <span class="key-status" id="serperStatus"></span>
+                        </label>
+                        <div class="key-input-wrapper">
+                            <input 
+                                type="password" 
+                                id="serperKey" 
+                                class="api-input"
+                                placeholder="Optional..."
+                            >
+                            <button type="button" class="toggle-visibility" onclick="toggleKeyVisibility('serperKey')">
+                                👁️
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="button" class="submit-btn" onclick="saveApiKeys()">
+                        <span class="btn-text">Save Keys</span>
+                        <span class="btn-icon">✓</span>
+                    </button>
+                </div>
+
+                <div class="api-info">
+                    <p>ℹ️ Your API keys are stored securely in your browser session and are never saved to our servers.</p>
+                    <p>Get your keys: <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI</a> | <a href="https://serper.dev" target="_blank">Serper</a></p>
+                </div>
+            </div>
+        </div>
+
         <!-- Query Input Section -->
-        <div class="input-section" id="inputSection">
+        <div class="input-section" id="inputSection" style="display: none;">
             <div class="input-card">
                 <h2 class="input-title">What do you want to learn?</h2>
                 <p class="input-subtitle">Enter your career goal or learning objective</p>

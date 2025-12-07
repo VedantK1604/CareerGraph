@@ -36,26 +36,29 @@ class AgentState(TypedDict):
     nodes: List[RoadmapNode]
     current_agent: str
     error: str
+    openai_api_key: str  # User-provided OpenAI API key
+    serper_api_key: str  # User-provided Serper API key (optional)
 
 
-def create_llm():
+def create_llm(api_key: str = None):
     """Create OpenAI LLM instance."""
-    api_key = os.getenv("OPENAI_API_KEY")
+    # Use provided API key or fall back to environment variable
+    key = api_key or os.getenv("OPENAI_API_KEY")
     model = os.getenv("OPENAI_MODEL", "gpt-4-turbo-preview")
     
-    if not api_key:
-        raise ValueError("OPENAI_API_KEY environment variable not set")
+    if not key:
+        raise ValueError("OpenAI API key must be provided or set in environment variable")
     
     return ChatOpenAI(
         model=model,
         temperature=0.7,
-        api_key=api_key
+        api_key=key
     )
 
 
 def validation_agent(state: AgentState) -> AgentState:
     """Validate if query is career/education related."""
-    llm = create_llm()
+    llm = create_llm(api_key=state.get("openai_api_key"))
     
     prompt = f"""You are a validation agent. Determine if the following query is related to career development, education, or learning.
     
@@ -97,7 +100,7 @@ Reject queries about:
 
 def research_agent(state: AgentState) -> AgentState:
     """Research and gather learning resources for the query using web search."""
-    llm = create_llm()
+    llm = create_llm(api_key=state.get("openai_api_key"))
     search_enabled = os.getenv("SEARCH_ENABLED", "true").lower() == "true"
     
     # Step 1: Use LLM to identify topics with detailed hierarchical structure
@@ -156,7 +159,7 @@ Example structure for "AI Engineer":
         if search_enabled:
             print(f"🔍 Web search ENABLED - Using Serper API")
             from careergraph.utils.search import SerperSearchTool
-            search_tool = SerperSearchTool()
+            search_tool = SerperSearchTool(api_key=state.get("serper_api_key"))
             
             # Enhance each topic with real web search results
             for topic in topics_structure.get("topics", []):
@@ -232,7 +235,7 @@ Example structure for "AI Engineer":
 
 def structure_agent(state: AgentState) -> AgentState:
     """Structure the research data into a hierarchical roadmap."""
-    llm = create_llm()
+    llm = create_llm(api_key=state.get("openai_api_key"))
     
     research_summary = json.dumps(state.get("research_data", []), indent=2)
     
@@ -426,8 +429,8 @@ def create_roadmap_graph():
     return workflow.compile()
 
 
-async def generate_roadmap(query: str) -> dict:
-    """Generate a roadmap for the given query."""
+async def generate_roadmap(query: str, openai_api_key: str = None, serper_api_key: str = None) -> dict:
+    """Generate a roadmap for the given query with optional API keys."""
     graph = create_roadmap_graph()
     
     initial_state: AgentState = {
@@ -438,7 +441,9 @@ async def generate_roadmap(query: str) -> dict:
         "roadmap_structure": {},
         "nodes": [],
         "current_agent": "",
-        "error": ""
+        "error": "",
+        "openai_api_key": openai_api_key,
+        "serper_api_key": serper_api_key
     }
     
     # Run the graph

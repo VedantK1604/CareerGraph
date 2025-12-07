@@ -57,8 +57,12 @@ async def create_roadmap(query: RoadmapQuery):
     3. Structure the information into a hierarchical roadmap
     """
     try:
-        # Generate roadmap using multi-agent system
-        result = await generate_roadmap(query.query)
+        # Generate roadmap using multi-agent system with user-provided API keys
+        result = await generate_roadmap(
+            query=query.query,
+            openai_api_key=query.openai_api_key,
+            serper_api_key=query.serper_api_key
+        )
         
         # Check if validation failed
         if not result.get("is_valid", False):

@@ -9,13 +9,14 @@ import requests
 class SerperSearchTool:
     """Tool for searching the web using Serper/SerpAPI."""
     
-    def __init__(self):
+    def __init__(self, api_key: str = None):
         """Initialize search tool with API key."""
-        self.api_key = os.getenv("SERPER_API_KEY")
+        # Use provided key or fall back to environment variable
+        self.api_key = api_key or os.getenv("SERPER_API_KEY")
         self.search_enabled = os.getenv("SEARCH_ENABLED", "true").lower() == "true"
         
         if not self.api_key and self.search_enabled:
-            print("Warning: SERPER_API_KEY not set. Web search will be disabled.")
+            print("Warning: SERPER_API_KEY not provided. Web search will be disabled.")
             self.search_enabled = False
     
     async def validate_url(self, url: str) -> bool:

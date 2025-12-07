@@ -11,6 +11,92 @@ const levelColors = {
     3: '#10b981'   // Units - Green
 };
 
+// ===== API Key Management =====
+
+// Check if API keys are set on page load
+document.addEventListener('DOMContentLoaded', () => {
+    updateKeyStatus();
+});
+
+// Save API keys to sessionStorage
+function saveApiKeys() {
+    const openaiKey = document.getElementById('openaiKey').value.trim();
+    const serperKey = document.getElementById('serperKey').value.trim();
+    
+    if (!openaiKey) {
+        alert('OpenAI API Key is required');
+        return;
+    }
+    
+    // Save to sessionStorage (more secure than localStorage)
+    sessionStorage.setItem('openai_api_key', openaiKey);
+    if (serperKey) {
+        sessionStorage.setItem('serper_api_key', serperKey);
+    }
+    
+    // Update status indicators
+    updateKeyStatus();
+    
+    // Show success message
+    alert('✅ API Keys saved successfully! You can now generate roadmaps.');
+    
+    // Show the query input section
+    document.getElementById('apiConfigSection').style.display = 'none';
+    document.getElementById('inputSection').style.display = 'block';
+    document.getElementById('queryInput').focus();
+}
+
+// Toggle password visibility
+function toggleKeyVisibility(inputId) {
+    const input = document.getElementById(inputId);
+    if (input.type === 'password') {
+        input.type = 'text';
+    } else {
+        input.type = 'password';
+    }
+}
+
+// Update key status indicators
+function updateKeyStatus() {
+    const openaiKey = sessionStorage.getItem('openai_api_key');
+    const serperKey = sessionStorage.getItem('serper_api_key');
+    
+    const openaiStatus = document.getElementById('openaiStatus');
+    const serperStatus = document.getElementById('serperStatus');
+    
+    if (openaiKey) {
+        openaiStatus.textContent = '✓ Set';
+        openaiStatus.className = 'key-status set';
+    } else {
+        openaiStatus.textContent = 'Not set';
+        openaiStatus.className = 'key-status not-set';
+    }
+    
+    if (serperKey) {
+        serperStatus.textContent = '✓ Set';
+        serperStatus.className = 'key-status set';
+    } else {
+        serperStatus.textContent = 'Not set';
+        serperStatus.className = 'key-status not-set';
+    }
+    
+    // If keys are already set, skip to query input
+    if (openaiKey) {
+        document.getElementById('apiConfigSection').style.display = 'none';
+        document.getElementById('inputSection').style.display = 'block';
+    }
+}
+
+// Get API keys from sessionStorage
+function getApiKeys() {
+    return {
+        openai_api_key: sessionStorage.getItem('openai_api_key'),
+        serper_api_key: sessionStorage.getItem('serper_api_key')
+    };
+}
+
+// ===== Roadmap Generation =====
+
 // Fill example query
 function fillExample(text) {
     document.getElementById('queryInput').value = text;
@@ -41,12 +127,23 @@ async function generateRoadmap(query) {
     simulateAgentProgress();
     
     try {
+        // Get API keys from sessionStorage
+        const apiKeys = getApiKeys();
+        
+        if (!apiKeys.openai_api_key) {
+            throw new Error('OpenAI API Key is required. Please configure your API keys.');
+        }
+        
         const response = await fetch('/api/generate-roadmap', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ query })
+            body: JSON.stringify({ 
+                query,
+                openai_api_key: apiKeys.openai_api_key,
+                serper_api_key: apiKeys.serper_api_key
+            })
         });
         
         if (!response.ok) {

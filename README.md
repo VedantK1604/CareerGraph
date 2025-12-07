@@ -104,6 +104,38 @@ Navigate to `http://localhost:8000`
 - Explore the interactive roadmap
 - Export as HTML for offline use
 
+## 🚀 Deployment
+
+### Option 1: Docker (Recommended)
+
+```bash
+# Build and run with Docker
+docker build -t careergraph .
+docker run -d -p 8000:8000 --name careergraph careergraph
+
+# Or use docker-compose
+docker-compose up -d
+```
+
+### Option 2: AWS Deployment
+
+Complete AWS deployment with CI/CD, ECR, and EC2. See **[DEPLOYMENT.md](DEPLOYMENT.md)** for:
+- AWS infrastructure setup (ECR, EC2, security groups)
+- GitHub Actions CI/CD configuration
+- Automated deployment process
+- Monitoring and troubleshooting
+
+**Quick AWS Deploy**:
+1. Set up AWS infrastructure (ECR + EC2)
+2. Configure GitHub Secrets
+3. Push to main branch → Auto-deploys!
+
+[![Deploy Status](https://img.shields.io/badge/deploy-automated-success)](DEPLOYMENT.md)
+
+###  Option 3: Manual Local Setup
+
+See [Quick Start](#-quick-start) section above.
+
 ## 📁 Project Structure
 
 ```

@@ -252,6 +252,116 @@ body {
     transform: translateY(-2px);
 }
 
+/* API Key Configuration Styles */
+.api-keys-form {
+    margin-bottom: 2rem;
+}
+
+.api-key-group {
+    margin-bottom: 1.5rem;
+}
+
+.api-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-primary);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.api-label .required {
+    color: var(--pink-500);
+}
+
+.api-label .optional {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+.key-status {
+    margin-left: auto;
+    font-size: 0.9rem;
+}
+
+.key-status.set {
+    color: var(--green-500);
+}
+
+.key-status.not-set {
+    color: var(--text-muted);
+}
+
+.key-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.api-input {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(139, 92, 246, 0.3);
+    border-radius: 12px;
+    padding: 1rem 3rem 1rem 1.5rem;
+    font-size: 1rem;
+    color: var(--text-primary);
+    font-family: 'Courier New', monospace;
+    transition: all 0.3s ease;
+}
+
+.api-input:focus {
+    outline: none;
+    border-color: var(--purple-500);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1);
+}
+
+.api-input::placeholder {
+    color: var(--text-muted);
+    font-family: 'Inter', sans-serif;
+}
+
+.toggle-visibility {
+    position: absolute;
+    right: 1rem;
+    background: transparent;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.3s ease;
+}
+
+.toggle-visibility:hover {
+    opacity: 1;
+}
+
+.api-info {
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 10px;
+    padding: 1rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.api-info p {
+    margin: 0.3rem 0;
+}
+
+.api-info a {
+    color: var(--blue-500);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.api-info a:hover {
+    text-decoration: underline;
+}
+
 /* Loading Section */
 .loading-card {
     background: var(--bg-card);

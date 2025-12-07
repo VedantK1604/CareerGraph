@@ -29,6 +29,8 @@ class RoadmapNode(BaseModel):
 class RoadmapQuery(BaseModel):
     """Input query for roadmap generation."""
     query: str = Field(..., description="Career or learning goal query", min_length=5)
+    openai_api_key: Optional[str] = Field(None, description="User's OpenAI API key")
+    serper_api_key: Optional[str] = Field(None, description="User's Serper API key (optional)")
 
 
 class RoadmapResponse(BaseModel):

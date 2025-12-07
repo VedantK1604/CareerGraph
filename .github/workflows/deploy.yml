@@ -1,0 +1,98 @@
+name: CD - Deploy to EC2
+
+on:
+  workflow_run:
+    workflows: ["CI - Build and Test"]
+    types:
+      - completed
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      
+      - name: Deploy to EC2
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          # Save SSH key
+          echo "$EC2_SSH_KEY" > ec2_key.pem
+          chmod 600 ec2_key.pem
+          
+           # Create deployment commands
+          cat > deploy.sh << 'EOF'
+          #!/bin/bash
+          set -e
+          
+          # Login to ECR
+          aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+          
+          # Pull latest image
+          docker pull $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          
+          # Stop and remove old container
+          docker stop careergraph || true
+          docker rm careergraph || true
+          
+          # Run new container
+          docker run -d \
+            --name careergraph \
+            -p 8000:8000 \
+            --restart unless-stopped \
+            $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          
+          # Clean up old images
+          docker image prune -af
+          
+          echo "✅ Deployment successful!"
+          EOF
+          
+          # Copy script to EC2 and execute
+          scp -i ec2_key.pem -o StrictHostKeyChecking=no deploy.sh $EC2_USER@$EC2_HOST:/tmp/
+          ssh -i ec2_key.pem -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'ENDSSH'
+            export AWS_REGION=${{ secrets.AWS_REGION }}
+            export ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
+            export ECR_REPOSITORY=${{ secrets.ECR_REPOSITORY }}
+            chmod +x /tmp/deploy.sh
+            /tmp/deploy.sh
+          ENDSSH
+          
+          # Clean up
+          rm -f ec2_key.pem deploy.sh
+      
+      - name: Verify deployment
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+        run: |
+          sleep 10
+          curl -f http://$EC2_HOST:8000/health && echo "✅ Health check passed" || echo "❌ Health check failed"
+      
+      - name: Notify deployment status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "🚀 Deployment to EC2 successful!"
+          else
+            echo "❌ Deployment to EC2 failed!"
+            exit 1
+          fi
