@@ -100,30 +100,51 @@ def research_agent(state: AgentState) -> AgentState:
     llm = create_llm()
     search_enabled = os.getenv("SEARCH_ENABLED", "true").lower() == "true"
     
-    # Step 1: Use LLM to identify topics and structure
-    structure_prompt = f"""You are a research agent. Identify the main topics and subtopics needed to achieve this goal.
+    # Step 1: Use LLM to identify topics with detailed hierarchical structure
+    structure_prompt = f"""You are a research agent. Create a comprehensive, detailed learning roadmap structure for this goal.
 
 Query: {state['query']}
 
-Respond with a JSON object containing topics to research:
+Generate a DETAILED hierarchical structure with:
+- Main Topics (8-12 major areas)
+- Subtopics (3-5 subtopics per main topic)
+- Learning Units (2-4 specific units per subtopic)
+
+Respond with a JSON object:
 {{
     "topics": [
         {{
-            "title": "Topic Name",
-            "description": "Brief description",
+            "title": "Topic Name (Context)",
+            "description": "What this topic covers and why it's important",
             "search_keywords": ["keyword1", "keyword2"],
             "subtopics": [
                 {{
                     "title": "Subtopic Name",
                     "description": "Brief description",
-                    "search_keywords": ["keyword1", "keyword2"]
+                    "search_keywords": ["keyword1", "keyword2"],
+                    "units": [
+                        "Specific Unit 1",
+                        "Specific Unit 2",
+                        "Specific Unit 3"
+                    ]
                 }}
             ]
         }}
     ]
 }}
 
-Focus on current, practical topics. Include trending technologies for 2025."""
+IMPORTANT:
+1. Create 8-12 main topics for comprehensive coverage
+2. Each main topic should have 3-5 detailed subtopics
+3. Each subtopic should break down into 2-4 specific learning units
+4. Include current/trending technologies for 2025
+5. Order topics from fundamentals to advanced
+
+Example structure for "AI Engineer":
+- Topic 1: "Basics of Programming (Python)" with subtopics: "Python Basics", "Intermediate Python", "Advanced Python"
+  - Python Basics units: "Variables, Data Types, Operators", "If-else, Loops", "Functions", "Modules"
+- Topic 2: "Mathematics for AI" with subtopics: "Linear Algebra", "Probability & Statistics", "Calculus Basics"
+- ... and so on for 8-12 total topics"""
 
     response = llm.invoke([HumanMessage(content=structure_prompt)])
     
@@ -140,42 +161,52 @@ Focus on current, practical topics. Include trending technologies for 2025."""
             # Enhance each topic with real web search results
             for topic in topics_structure.get("topics", []):
                 topic_resources = []
+                books = []
                 
                 print(f"  📚 Searching for: {topic['title']}")
                 
-                # Search for videos
-                videos = search_tool.search_youtube(topic["title"], max_results=2)
+                # Search for MORE resources at the topic level
+                # Videos - increase from 2 to 3-4
+                videos = search_tool.search_youtube(topic["title"], max_results=4)
                 print(f"    ✓ Found {len(videos)} YouTube videos")
                 topic_resources.extend(videos)
                 
-                # Search for courses
-                courses = search_tool.search_courses(topic["title"], max_results=2)
+                # Courses - increase from 2 to 3
+                courses = search_tool.search_courses(topic["title"], max_results=3)
                 print(f"    ✓ Found {len(courses)} courses")
                 topic_resources.extend(courses)
                 
-                # Search for documentation
-                docs = search_tool.search_documentation(topic["title"], max_results=1)
+                # Documentation
+                docs = search_tool.search_documentation(topic["title"], max_results=2)
                 print(f"    ✓ Found {len(docs)} documentation")
                 topic_resources.extend(docs)
+                
+                # NEW: Search for books
+                books = search_tool.search_books(topic["title"], max_results=3)
+                print(f"    ✓ Found {len(books)} books")
                 
                 # Add resources to subtopics
                 for subtopic in topic.get("subtopics", []):
                     subtopic_query = f"{topic['title']} {subtopic['title']}"
                     
-                    # Fewer resources for subtopics
-                    sub_videos = search_tool.search_youtube(subtopic_query, max_results=1)
+                    # Resources for subtopics
+                    sub_videos = search_tool.search_youtube(subtopic_query, max_results=2)
                     sub_courses = search_tool.search_courses(subtopic_query, max_results=1)
+                    sub_docs = search_tool.search_documentation(subtopic_query, max_results=1)
                     
-                    subtopic["resources"] = sub_videos + sub_courses
+                    subtopic["resources"] = sub_videos + sub_courses + sub_docs
                     print(f"      - {subtopic['title']}: {len(subtopic['resources'])} resources")
                 
-                # Attach main topic resources
+                # Attach main topic resources and books
                 topic["resources"] = topic_resources
-                print(f"  Total resources for '{topic['title']}': {len(topic_resources)}")
+                topic["books"] = books
+                print(f"  Total for '{topic['title']}': {len(topic_resources)} resources + {len(books)} books")
         else:
             print(f"⚠️  Web search DISABLED - Using LLM fallback")
             # Fallback: Use LLM to suggest resources (old behavior)
             for topic in topics_structure.get("topics", []):
+                topic["resources"] = []
+                topic["books"] = []
                 for subtopic in topic.get("subtopics", []):
                     # Add placeholder resources
                     subtopic["resources"] = [
@@ -188,7 +219,7 @@ Focus on current, practical topics. Include trending technologies for 2025."""
                         }
                     ]
         
-        print(f"✅ Research complete. Total topics: {len(topics_structure.get('topics', []))}")
+        print(f"✅ Research complete. Total topics: {len(topics_structure.get('topics', []))}") 
         state["research_data"] = [topics_structure]
         state["current_agent"] = "research"
     except (json.JSONDecodeError, Exception) as e:
@@ -205,19 +236,23 @@ def structure_agent(state: AgentState) -> AgentState:
     
     research_summary = json.dumps(state.get("research_data", []), indent=2)
     
-    prompt = f"""You are a structure agent. Create a hierarchical learning roadmap from the research data.
+    prompt = f"""You are a structure agent. Create a detailed hierarchical learning roadmap from the research data.
 
 Query: {state['query']}
 Research Data:
 {research_summary}
 
-IMPORTANT: The research data contains real resources (YouTube videos, courses, documentation) that you MUST include in the roadmap nodes.
+IMPORTANT: The research data contains:
+- Real resources (YouTube videos, courses, documentation) from web search
+- Book recommendations  
+- Detailed hierarchical structure with topics, subtopics, and learning units
+- You MUST include ALL of this information in the roadmap
 
-Create a complete roadmap with nodes at different levels:
-- Level 0: Root node (the overall goal)
-- Level 1: Main topics/phases
-- Level 2: Subtopics within each main topic  
-- Level 3: Individual learning units
+Create a complete roadmap with nodes at ALL levels:
+- Level 0: Root node (the overall career goal)
+- Level 1: Main topics/phases (e.g., "Basics of Programming (Python)")
+- Level 2: Subtopics within each main topic (e.g., "Python Basics", "Intermediate Python")
+- Level 3: Individual learning units (e.g., "Variables, Data Types, Operators")
 
 Respond with a JSON object:
 {{
@@ -235,9 +270,9 @@ Respond with a JSON object:
                 {{
                     "title": "Resource Title",
                     "url": "https://actual-url.com",
-                    "type": "video|documentation|course",
+                    "type": "video|documentation|course|book",
                     "description": "Brief description",
-                    "source": "YouTube|Coursera|Official Docs",
+                    "source": "YouTube|Coursera|Official Docs|Book",
                     "duration": "time if known"
                 }}
             ],
@@ -248,15 +283,43 @@ Respond with a JSON object:
 }}
 
 CRITICAL INSTRUCTIONS:
-1. Create a clear hierarchy with proper parent_id relationships
-2. **COPY ALL RESOURCES from the research data topics/subtopics to the corresponding roadmap nodes**
-3. Match topics from research data to roadmap nodes and include their resources
-4. Do NOT leave resources arrays empty if research data has resources for that topic
-5. Define prerequisites where applicable
-6. Provide realistic time estimates
-7. Make IDs descriptive (e.g., "fundamentals-python", "advanced-ml")
+1. Create nodes for ALL hierarchy levels:
+   - 1 root node (level 0)
+   - All main topics from research as level 1 nodes
+   - All subtopics as level 2 nodes (parent_id = main topic id)
+   - All learning units as level 3 nodes (parent_id = subtopic id)
 
-Example: If research data has a topic "HTML Basics" with 5 resources, the roadmap node for "HTML Basics" should include all 5 resources."""
+2. Resource distribution:
+   - Level 0 (root): No resources
+   - Level 1 (main topics): Include ALL resources AND books from research data
+   - Level 2 (subtopics): Include resources from research data
+   - Level 3 (units): Can be lightweight with minimal or no resources
+
+3. **COPY ALL RESOURCES from research data**:
+   - Main topics should include their "resources" array AND "books" array
+   - Subtopics should include their "resources" array
+   - Do NOT leave resource arrays empty if research data has them
+
+4. Use descriptive IDs: "root", "topic-python", "python-basics", "python-basics-variables"
+
+5. Set proper parent-child relationships with parent_id
+
+6. Define prerequisites where applicable (e.g., Python before Machine Learning)
+
+7. Provide realistic time estimates for each node
+
+Example node hierarchy for "AI Engineer":
+- root (level 0)
+  - topic-python (level 1, parent: root) - with video/course/doc/book resources
+    - python-basics (level 2, parent: topic-python) - with video/course resources
+      - python-basics-variables (level 3, parent: python-basics)
+      - python-basics-loops (level 3, parent: python-basics)
+    - python-intermediate (level 2, parent: topic-python)
+      - python-oop (level 3, parent: python-intermediate)
+  - topic-mathematics (level 1, parent: root) - with video/course/doc/book resources
+    ...and so on
+
+**Match the research data structure exactly** - if research has 10 topics with 3-5 subtopics each, create nodes for all of them."""
 
     response = llm.invoke([HumanMessage(content=prompt)])
     
@@ -282,6 +345,17 @@ Example: If research data has a topic "HTML Basics" with 5 resources, the roadma
         
         state["nodes"] = nodes
         state["current_agent"] = "structure"
+        
+        # Log statistics for better observability
+        print(f"📊 Roadmap structure created:")
+        print(f"   Total nodes: {len(nodes)}")
+        print(f"   Level 0 (root): {len([n for n in nodes if n.level == 0])}")
+        print(f"   Level 1 (topics): {len([n for n in nodes if n.level == 1])}")
+        print(f"   Level 2 (subtopics): {len([n for n in nodes if n.level == 2])}")
+        print(f"   Level 3 (units): {len([n for n in nodes if n.level == 3])}")
+        
+        total_resources = sum(len(n.resources) for n in nodes)
+        print(f"   Total resources: {total_resources}")
     except (json.JSONDecodeError, Exception) as e:
         state["nodes"] = []
         state["error"] = f"Structure parsing error: {str(e)}"

@@ -152,6 +152,54 @@ class SerperSearchTool:
             print(f"Documentation search error: {e}")
             return []
     
+    def search_books(self, query: str, max_results: int = 3) -> List[Dict]:
+        """Search for recommended technical books."""
+        if not self.search_enabled:
+            return []
+        
+        try:
+            # Search for highly-rated technical books
+            search_query = f"{query} book programming technical best recommended"
+            
+            url = "https://google.serper.dev/search"
+            payload = {"q": search_query, "num": max_results + 2}
+            headers = {
+                "X-API-KEY": self.api_key,
+                "Content-Type": "application/json"
+            }
+            
+            response = requests.post(url, json=payload, headers=headers)
+            if response.status_code != 200:
+                print(f"Book search error: {response.status_code}")
+                return []
+            
+            results = response.json()
+            
+            books = []
+            for result in results.get("organic", []):
+                title = result.get("title", "")
+                link = result.get("link", "")
+                snippet = result.get("snippet", "")
+                
+                # Filter for book-related results
+                if any(term in title.lower() or term in snippet.lower() 
+                      for term in ["book", "edition", "author", "published", "isbn"]):
+                    books.append({
+                        "title": title,
+                        "url": link,
+                        "description": snippet,
+                        "type": "book",
+                        "source": "Book"
+                    })
+                
+                if len(books) >= max_results:
+                    break
+            
+            return books[:max_results]
+        except Exception as e:
+            print(f"Book search error: {e}")
+            return []
+    
     def search_general(self, query: str, max_results: int = 5) -> List[Dict]:
         """General web search for resources."""
         if not self.search_enabled:
