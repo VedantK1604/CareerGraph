@@ -1,4 +1,4 @@
-# CareerGraph - AI-Powered Career Roadmap Generator
+# CareerMap - AI-Powered Career Roadmap Generator
 
 CareerGraph is a sophisticated multi-agent AI application that generates interactive, hierarchical career roadmaps with curated learning resources. Built with FastAPI, LangGraph, and OpenAI's GPT-4.
 
